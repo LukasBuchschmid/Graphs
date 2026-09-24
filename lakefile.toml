@@ -1,0 +1,10 @@
+name = "Graph"
+version = "0.1.0"
+defaultTargets = ["graph"]
+
+[[lean_lib]]
+name = "Graph"
+
+[[lean_exe]]
+name = "graph"
+root = "Main"
