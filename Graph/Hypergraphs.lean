@@ -27,8 +27,9 @@ structure Hypergraph (E : Type u) (V : Type v) where
   s : E → List V
   t : E → List V
 
-def DiscreteHyperGraphs (V : Type v) : Type _ :=
-  Hypergraph Empty V
+def DiscreteGraph (V : Type V) : Type _ :=
+  Graph Empty V
+
 
 def HAdj (hg : Hypergraph E V) (a b : List V) : Prop :=
   ∃ e : E, hg.s e = a ∧ hg.t e = b
@@ -51,6 +52,9 @@ def Hypergraph.toGraph (hg : Hypergraph E V) : Graph E (List V) :=
 def Graph.toHypergraph (g : Graph E (List V)) : Hypergraph E V :=
   { s := g.s,
     t := g.t }
+
+def DiscreteHyperGraph (V : Type v) : Type _ :=
+  (DiscreteGraph (List V))
 
 theorem hadj_iff_adj (hg : Hypergraph E V) (a b : List V) :
     HAdj hg a b ↔ Adj hg.toGraph a b :=
@@ -309,3 +313,54 @@ theorem dag_to_hypergraph_is_acyclic {V : Type} {nodes : List (List V)} (d : DAG
     AcyclicHyperGraph (DAGtoHypergraph d) := by
   rw [acyclicHyperGraph_iff_acyclicGraph]
   exact dag_is_acyclic d
+
+
+structure GraphWithInterfaces (E : Type u) (V : Type v) (n m : Nat) where
+  Input : DiscreteGraph (Fin n)
+  Output : DiscreteGraph (Fin m)
+  MainGraph : Graph E V
+  InputHom : GraphHom Input MainGraph
+  OutputHom : GraphHom Output MainGraph
+
+def HyperGraphCompGraphSource  (hi₁ : GraphWithInterfaces E₁ V₁ n₁ n₂) (hi₂: GraphWithInterfaces E₂ V₂ n₂ n₃)
+  : E₁ ⊕ E₂ ⊕ Fin n₂ → V₁ ⊕ V₂ :=
+  fun e =>
+    match e with
+    | .inl e₁ => .inl (hi₁.MainGraph.s e₁)
+    | .inr (.inl e₂) => .inr (hi₂.MainGraph.s e₂)
+    | .inr (.inr e₃) => .inl (hi₁.OutputHom.mapV e₃)
+
+def HyperGraphCompGraphTarget (hi₁ : GraphWithInterfaces E₁ V₁ n₁ n₂) (hi₂: GraphWithInterfaces E₂ V₂ n₂ n₃)
+  : E₁ ⊕ E₂ ⊕ Fin n₂ → V₁ ⊕ V₂ :=
+  fun e =>
+    match e with
+    | .inl e₁ => .inl (hi₁.MainGraph.t e₁)
+    | .inr (.inl e₂) => .inr (hi₂.MainGraph.t e₂)
+    | .inr (.inr e₃) => .inr (hi₂.InputHom.mapV e₃)
+
+def HypergraphCompGraph  (hi₁ : GraphWithInterfaces E₁ V₁ n₁ n₂) (hi₂: GraphWithInterfaces E₂ V₂ n₂ n₃)
+    : Graph (E₁ ⊕ E₂ ⊕ Fin n₂) (V₁ ⊕ V₂) :=
+    { s := HyperGraphCompGraphSource hi₁ hi₂
+      t := HyperGraphCompGraphTarget hi₁ hi₂ }
+
+def HypergraphCompInput (hi₁ : GraphWithInterfaces E₁ V₁ n₁ n₂) (hi₂: GraphWithInterfaces E₂ V₂ n₂ n₃)
+    : GraphHom hi₁.Input (HypergraphCompGraph hi₁ hi₂) :=
+    { mapE := fun e => nomatch e
+      mapV := fun x => .inl (hi₁.InputHom.mapV x)
+      sourceCompliant := fun e => nomatch e
+      targetCompliant := fun e => nomatch e }
+
+def HypergraphCompOutput (hi₁ : GraphWithInterfaces E₁ V₁ n₁ n₂) (hi₂: GraphWithInterfaces E₂ V₂ n₂ n₃)
+    : GraphHom hi₂.Output (HypergraphCompGraph hi₁ hi₂) :=
+    { mapE := fun e => nomatch e
+      mapV := fun x => .inr (hi₂.OutputHom.mapV x)
+      sourceCompliant := fun e => nomatch e
+      targetCompliant := fun e => nomatch e }
+
+def GraphComp (hi₁ : GraphWithInterfaces E₁ V₁ n₁ n₂) (hi₂: GraphWithInterfaces E₂ V₂ n₂ n₃)
+  : GraphWithInterfaces (E₁ ⊕ E₂ ⊕ Fin n₂) (V₁ ⊕ V₂) n₁ n₃ :=
+  { Input := hi₁.Input
+    Output := hi₂.Output
+    MainGraph := HypergraphCompGraph hi₁ hi₂
+    InputHom := HypergraphCompInput hi₁ hi₂
+    OutputHom := HypergraphCompOutput hi₁ hi₂ }
