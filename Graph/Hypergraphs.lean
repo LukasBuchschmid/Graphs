@@ -52,12 +52,10 @@ def Graph.toHypergraph (g : Graph E (List V)) : Hypergraph E V :=
   { s := g.s,
     t := g.t }
 
-@[simp]
 theorem hadj_iff_adj (hg : Hypergraph E V) (a b : List V) :
     HAdj hg a b ↔ Adj hg.toGraph a b :=
   Iff.rfl
 
-@[simp]
 theorem hgraphPath_iff_graphPath (hg : Hypergraph E V) (path : List (List V)) :
     HGraphPath hg path ↔ GraphPath hg.toGraph path := by
   induction path with
@@ -70,7 +68,6 @@ theorem hgraphPath_iff_graphPath (hg : Hypergraph E V) (path : List (List V)) :
       rw [ih]
       rfl
 
-@[simp]
 theorem acyclicHyperGraph_iff_acyclicGraph (hg : Hypergraph E V) :
     AcyclicHyperGraph hg ↔ AcyclicGraph hg.toGraph := by
   constructor
