@@ -218,9 +218,7 @@ theorem graph_path_add_to_prev {A : Type} {nodes : List A}
       have h_tail_prev := graph_path_add_to_prev v prev h_new edges h_edges (y :: rest) h_tail_nodes hp_tail
       exact ⟨h_adj_prev, h_tail_prev⟩
 
--- The trivial empty-path case.
--- (You often don't even need to write this lemma, since `simp` or `intro _; trivial`
--- can instantly prove the `[]` case in your main proof).
+
 theorem path_cases_nil {A : Type} {nodes : List A}
   (v : A) (prev : DAG A nodes) (h_new : v ∉ nodes)
   (edges : List A) (h_edges : ∀ e ∈ edges, e ∈ nodes) :
@@ -228,8 +226,7 @@ theorem path_cases_nil {A : Type} {nodes : List A}
     intro _
     trivial
 
--- The core invariant for any path with at least one node.
--- Notice how clean the tactic state will be: no matches, just explicit variables `h` and `t`.
+
 theorem path_cases_step {A : Type} {nodes : List A}
   (v : A) (prev : DAG A nodes) (h_new : v ∉ nodes)
   (edges : List A) (h_edges : ∀ e ∈ edges, e ∈ nodes)
@@ -264,9 +261,7 @@ theorem path_cases_step {A : Type} {nodes : List A}
 
 theorem dag_is_acyclic {A : Type} {nodes : List A} (d : DAG A nodes) :
   AcyclicGraph (DAGtoGraph d) := by
-  -- We prove acyclicity by structural induction on the graph's construction
   induction d with
-  -- Base Case: The empty graph
   | empty =>
     intro p hp
     cases p with
@@ -274,15 +269,12 @@ theorem dag_is_acyclic {A : Type} {nodes : List A} (d : DAG A nodes) :
     | cons h t =>
       cases t with
       | nil =>
-        -- Path of length 1: ∀ x ∈ [], x ≠ h (vacuously true)
         intro x hx
         contradiction
       | cons x rest =>
-        -- Path of length ≥ 2: Requires an edge, but DAGEdges empty is the `Empty` type.
         rcases hp.1 with ⟨e, _⟩
         exact nomatch e
 
-  -- Inductive Step: Adding a new node
   | add v prev h_new edges h_edges ih =>
     rename_i vs
     intro p hp
@@ -294,34 +286,20 @@ theorem dag_is_acyclic {A : Type} {nodes : List A} (d : DAG A nodes) :
         intro x hx
         contradiction
       | cons b tl =>
-        -- Evaluate our invariant lemma on the specific path `h :: b :: tl`
         have h_cases := path_cases_step v prev h_new edges h_edges h b tl hp
 
         cases h_cases with
         | inl h_left =>
-          -- Case 1: The path starts at our newly added node `v`
           have h_eq : h = v := h_left.1
           have h_in : ∀ x ∈ (b :: tl), x ∈ vs := h_left.2
-
-          -- We must prove no node in the rest of the path loops back to `h`
           intro x hx h_contra
-
-          -- We know `x` is in the older nodes
           have x_in_vs : x ∈ vs := h_in x hx
-
-          -- If x looped back to h, then x = v
           have x_is_v : x = v := by rw [h_contra, h_eq]
-
-          -- But this contradicts our type's requirement that v ∉ nodes!
           rw [x_is_v] at x_in_vs
           exact h_new x_in_vs
 
         | inr h_right =>
-          -- Case 2: The path belongs entirely to the older graph `prev`
           have hp_prev : GraphPath (DAGtoGraph prev) (h :: b :: tl) := h_right.2.1
-
-          -- Because the path is completely contained in `prev`,
-          -- we instantly win by applying the Inductive Hypothesis.
           exact ih (h :: b :: tl) hp_prev
 
 def DAGtoHypergraph {V : Type} {nodes : List (List V)} (d : DAG (List V) nodes) : Hypergraph (DAGEdges d) V :=
