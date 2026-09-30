@@ -364,3 +364,56 @@ def GraphComp (hi₁ : GraphWithInterfaces E₁ V₁ n₁ n₂) (hi₂: GraphWit
     MainGraph := HypergraphCompGraph hi₁ hi₂
     InputHom := HypergraphCompInput hi₁ hi₂
     OutputHom := HypergraphCompOutput hi₁ hi₂ }
+
+structure StrictPartialOrder {α : Type _} (r : α → α → Prop) : Prop where
+  irrefl : ∀ a, ¬ r a a
+  trans  : ∀ {a b c}, r a b → r b c → r a c
+
+
+-- thats not an actual E-Graph (or maybe it is, who knows)
+-- I wanted to do it abstractly though, maybe this reveals something about the structure
+def ImmParent {α : Type _} (child : α → α → Prop) (p x : α) : Prop :=
+  child p x ∧ ∀ z, child p z → ¬ child z x
+
+structure E_Hypergraph (E : Type u) (V : Type v) (Sign : Type _) where
+  hg : Hypergraph E V
+  child : (V ⊕ E) → (V ⊕ E) → Prop
+  child_strict : StrictPartialOrder child
+  label : E → Sign ⊕ Unit
+  consistency : (V ⊕ E) → (V ⊕ E) → Prop
+
+  -- 1) each parent set contains exclusively hierarchical edges
+  parents_are_hierarchical : ∀ (a p : V ⊕ E), child p a → ∃ e : E, p = .inr e ∧ label e = .inr ()
+  -- 2) each x has at most one immediate parent
+  at_most_one_immediate_parent : ∀ (x p₁ p₂ : V ⊕ E),
+    ImmParent child p₁ x → ImmParent child p₂ x → p₁ = p₂
+  -- 3) for all e such that e is maximal, l(e) ≠ ⊥
+  maximal_edges_not_hierarchical : ∀ (e : E),
+    (∀ x' : V ⊕ E, ¬ child (.inr e) x') → ∃ s : Sign, label e = .inl s
+  -- 4) if v ∈ s(e) then e' <^μ e iff e' <^μ v and similarly if v ∈ t(e)
+  edges_preserve_parent_source : ∀ (e : E) (v : V) (p : V ⊕ E),
+    v ∈ hg.s e → (ImmParent child p (.inr e) ↔ ImmParent child p (.inl v))
+  edges_preserve_parent_target : ∀ (e : E) (v : V) (p : V ⊕ E),
+    v ∈ hg.t e → (ImmParent child p (.inr e) ↔ ImmParent child p (.inl v))
+
+  -- Consistency relation properties:
+  -- union of family on each set sharing the same parent
+  consistency_same_parent : ∀ (x y : V ⊕ E),
+    consistency x y → ∃ p, ImmParent child p x ∧ ImmParent child p y
+  consistency_refl : ∀ (x p : V ⊕ E),
+    ImmParent child p x → consistency x x
+  consistency_symm : ∀ (x y : V ⊕ E),
+    consistency x y → consistency y x
+  consistency_trans : ∀ (x y z : V ⊕ E),
+    consistency x y → consistency y z → consistency x z
+  -- closed under connectivity
+  consistency_closed_connectivity : ∀ (e : E) (v : V) (p : V ⊕ E),
+    (v ∈ hg.s e ∨ v ∈ hg.t e) →
+    ImmParent child p (.inr e) →
+    ImmParent child p (.inl v) →
+    consistency (.inl v) (.inr e)
+  -- non-triviality: ~_p ≠ (E_p + V_p) × (E_p + V_p)
+  consistency_nontrivial : ∀ (p : V ⊕ E),
+    (∃ x y : V ⊕ E, ImmParent child p x ∧ ImmParent child p y ∧ x ≠ y) →
+    ∃ x y : V ⊕ E, ImmParent child p x ∧ ImmParent child p y ∧ ¬ consistency x y
+
