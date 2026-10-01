@@ -1,1 +1,30 @@
+# Lean 4
 /.lake
+
+# LaTeX build artifacts / auxiliary files
+*.aux
+*.bbl
+*.blg
+*.brf
+*.fdb_latexmk
+*.fls
+*.idx
+*.ilg
+*.ind
+*.loa
+*.lof
+*.log
+*.lot
+*.nav
+*.out
+*.snm
+*.synctex.gz
+*.synctex(busy)
+*.toc
+*.vrb
+*.bcf
+*.run.xml
+*.xdv
+_minted-*
+*.table
+*.gnuplot
