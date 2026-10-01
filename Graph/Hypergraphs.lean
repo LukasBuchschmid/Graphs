@@ -8,6 +8,12 @@ structure GraphHom (g₁ : Graph E₁ V₁) (g₂ : Graph E₂ V₂) where
   sourceCompliant (e : E₁) : (g₂.s (mapE e)) = mapV (g₁.s e)
   targetCompliant (e : E₁) : (g₂.t (mapE e)) = mapV (g₁.t e)
 
+def GraphId (g : Graph E V) : GraphHom g g :=
+  { mapE := fun e => e
+    mapV := fun v => v
+    sourceCompliant := by grind
+    targetCompliant := by grind }
+
 
 def Adj (g : Graph E V) (a b : V) : Prop :=
   ∃ e : E, g.s e = a ∧ g.t e = b
@@ -16,6 +22,12 @@ def GraphPath (g : Graph E V) (path : List V) : Prop :=
   match path with
     | a :: b :: tl => (Adj g a b) ∧ GraphPath g (b :: tl)
     | _ => true
+
+def GraphPathEdge (g : Graph E V) (path : List E) : Prop :=
+  match path with
+    | a :: b :: tl => (g.t a) = (g.s b) ∧ GraphPathEdge g (b :: tl)
+    | _ => true
+
 
 def AcyclicGraph (g : Graph E V) : Prop :=
   ∀ (e : List V), GraphPath g e →
@@ -370,17 +382,22 @@ structure StrictPartialOrder {α : Type _} (r : α → α → Prop) : Prop where
   trans  : ∀ {a b c}, r a b → r b c → r a c
 
 
--- thats not an actual E-Graph (or maybe it is, who knows)
--- I wanted to do it abstractly though, maybe this reveals something about the structure
+
 def ImmParent {α : Type _} (child : α → α → Prop) (p x : α) : Prop :=
   child p x ∧ ∀ z, child p z → ¬ child z x
+
+abbrev ChildOf {α : Type _} (child : α → α → Prop) (p : α) :=
+  { x : α // ImmParent child p x }
 
 structure E_Hypergraph (E : Type u) (V : Type v) (Sign : Type _) where
   hg : Hypergraph E V
   child : (V ⊕ E) → (V ⊕ E) → Prop
   child_strict : StrictPartialOrder child
   label : E → Sign ⊕ Unit
-  consistency : (V ⊕ E) → (V ⊕ E) → Prop
+
+  -- Consistency relation family ~_p indexed by parent p:
+  consistency : (p : V ⊕ E) → ChildOf child p → ChildOf child p → Prop
+  consistency_equiv : ∀ (p : V ⊕ E), Equivalence (consistency p)
 
   -- 1) each parent set contains exclusively hierarchical edges
   parents_are_hierarchical : ∀ (a p : V ⊕ E), child p a → ∃ e : E, p = .inr e ∧ label e = .inr ()
@@ -396,24 +413,74 @@ structure E_Hypergraph (E : Type u) (V : Type v) (Sign : Type _) where
   edges_preserve_parent_target : ∀ (e : E) (v : V) (p : V ⊕ E),
     v ∈ hg.t e → (ImmParent child p (.inr e) ↔ ImmParent child p (.inl v))
 
-  -- Consistency relation properties:
-  -- union of family on each set sharing the same parent
-  consistency_same_parent : ∀ (x y : V ⊕ E),
-    consistency x y → ∃ p, ImmParent child p x ∧ ImmParent child p y
-  consistency_refl : ∀ (x p : V ⊕ E),
-    ImmParent child p x → consistency x x
-  consistency_symm : ∀ (x y : V ⊕ E),
-    consistency x y → consistency y x
-  consistency_trans : ∀ (x y z : V ⊕ E),
-    consistency x y → consistency y z → consistency x z
-  -- closed under connectivity
-  consistency_closed_connectivity : ∀ (e : E) (v : V) (p : V ⊕ E),
+  -- Closed under connectivity:
+  consistency_closed_connectivity : ∀ (p : V ⊕ E) (e : E) (v : V)
+    (hp_e : ImmParent child p (.inr e))
+    (hp_v : ImmParent child p (.inl v)),
     (v ∈ hg.s e ∨ v ∈ hg.t e) →
-    ImmParent child p (.inr e) →
-    ImmParent child p (.inl v) →
-    consistency (.inl v) (.inr e)
-  -- non-triviality: ~_p ≠ (E_p + V_p) × (E_p + V_p)
-  consistency_nontrivial : ∀ (p : V ⊕ E),
-    (∃ x y : V ⊕ E, ImmParent child p x ∧ ImmParent child p y ∧ x ≠ y) →
-    ∃ x y : V ⊕ E, ImmParent child p x ∧ ImmParent child p y ∧ ¬ consistency x y
+    consistency p ⟨.inl v, hp_v⟩ ⟨.inr e, hp_e⟩
 
+  -- Non-triviality: ~_p ≠ (E_p + V_p) × (E_p + V_p)
+  -- For every parent p, consistency is not the indiscrete relation (at least two classes):
+  consistency_nontrivial : ∀ (p : V ⊕ E),
+    (∃ x, ImmParent child p x) →
+    ∃ (x y : ChildOf child p), ¬ consistency p x y
+
+-- this doesn't realy work sadly
+-- since we cannot expect to only have a path of singular edges
+
+def maximal_Edge (ehg : E_Hypergraph E V Sign) (e : E) : Prop :=
+  ehg.label e ≠  .inr ()
+
+-- An edge is a base (non-hierarchical) edge if its label is not ⊥
+def isBaseEdge (ehg : E_Hypergraph E V Sign) (e : E) : Prop :=
+  ehg.label e ≠ .inr ()
+
+set_option linter.unusedVariables false in
+def isRepr (ehg : E_Hypergraph E V Sign) (e : E) (repr : List E) : Prop :=
+  repr ≠ [] ∧
+  -- 2. Every edge in repr is an immediate child of e
+  (∀ a ∈ repr, ∃ (ha : ImmParent ehg.child (.inr e) (.inr a)), True) ∧
+  -- 3. All edges in repr are mutually consistent
+  (∀ (e₁ : E) (h₁ : e₁ ∈ repr) (e₂ : E) (h₂ : e₂ ∈ repr),
+    ∀ (hp₁ : ImmParent ehg.child (.inr e) (.inr e₁))
+      (hp₂ : ImmParent ehg.child (.inr e) (.inr e₂)),
+      ehg.consistency (.inr e) ⟨.inr e₁, hp₁⟩ ⟨.inr e₂, hp₂⟩) ∧
+  -- 4. Maximality: any child edge not in repr is not consistent with repr
+  (∀ (a : E) (ha : ImmParent ehg.child (.inr e) (.inr a)),
+    a ∉ repr →
+    ∀ (b : E) (hb : b ∈ repr) (hpb : ImmParent ehg.child (.inr e) (.inr b)),
+      ¬ ehg.consistency (.inr e) ⟨.inr a, ha⟩ ⟨.inr b, hpb⟩)
+
+
+
+mutual
+  inductive E_Path (ehg : E_Hypergraph E V Sign) : List E → Type _
+    | Base_Path (path : List E)
+        (ep : GraphPathEdge ehg.hg.toGraph path)
+        (maximal_edges : ∀ e ∈ path, isBaseEdge ehg e) :
+        E_Path ehg path
+    | Ind_Path (path : List E)
+        (ep : GraphPathEdge ehg.hg.toGraph path)
+        (reps : ∀ e ∈ path, EdgeRep ehg e) :
+        E_Path ehg path
+
+  inductive EdgeRep (ehg : E_Hypergraph E V Sign) : E → Type _
+    | base (e : E) (h : isBaseEdge ehg e) :
+        EdgeRep ehg e
+    | step (e : E) (sub : List E) (h_rep : isRepr ehg e sub) (p : E_Path ehg sub) :
+        EdgeRep ehg e
+end
+
+
+mutual
+  def ExtractBase (ehg : E_Hypergraph E V Sign) (path : List E) (e_path : E_Path ehg path) : List E :=
+    match e_path with
+    | .Base_Path list _ _ => list
+    | .Ind_Path p _ reps  => p.attach.flatMap (fun ⟨e, he⟩ => ExtractEdge ehg e (reps e he))
+
+  def ExtractEdge (ehg : E_Hypergraph E V Sign) (e : E) (rep : EdgeRep ehg e) : List E :=
+    match rep with
+    | .base e _       => [e]
+    | .step _ sub _ p => ExtractBase ehg sub p
+end
