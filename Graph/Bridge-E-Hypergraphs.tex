@@ -306,6 +306,273 @@ A Bridge Graph $G$ is called a \emph{valid Bridge E-Hypergraph} if there exist a
     Every input bridge $\mathrm{bridgeIn}(b, c)$ has a corresponding output bridge $\mathrm{bridgeOut}(b, c)$, and vice versa.
 \end{enumerate}
 
+\subsection{Example: Morphism of $\mathbf{EHypI}(\Sigma)$ vs.\ Bridge E-Hypergraph}
+
+To make the structural difference concrete, we examine the canonical example of an e-box with two alternatives from Tiurin et al.~\cite[Fig.~6]{tiurin2024equivalence}, illustrated side-by-side with its equivalent Bridge E-Hypergraph in \Cref{fig:comparison-example}.
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}[t]{0.48\textwidth}
+\centering
+\begin{tikzpicture}[
+  scale=0.82, transform shape,
+  >={Stealth},
+  vblack/.style={circle, fill=black, inner sep=1.4pt},
+  vred/.style={circle, fill=red!75!black, inner sep=1.4pt},
+  vblue/.style={circle, fill=blue!75!black, inner sep=1.4pt},
+  wire/.style={thick},
+  arrowwire/.style={->, thick},
+  intbox/.style={draw=blue!70, dashdotted, fill=blue!5, thick, rounded corners=1pt},
+  graphbox/.style={draw=gray!70, fill=gray!10, rounded corners=1pt}
+]
+  % 1. External Input Interface n
+  \draw[intbox] (-0.8, 3.4) rectangle (0.8, 4.1);
+  \node[vblack, label=above:{\scriptsize $v_1$}] at (-0.3, 3.6) {};
+  \node[vblack, label=above:{\scriptsize $v_2$}] at (0.3, 3.6) {};
+
+  % Arrow f_ext
+  \draw[arrowwire] (0, 3.35) -- (0, 2.75);
+
+  % 2. Extended Input Interface n'
+  \draw[intbox] (-1.9, 2.0) rectangle (1.9, 2.7);
+  \node[vblack, label=above:{\scriptsize $v_1$}] at (-1.5, 2.2) {};
+  \node[vblack, label=above:{\scriptsize $v_2$}] at (-0.9, 2.2) {};
+  \node[vred, label=above:{\scriptsize $v_3$}] at (-0.3, 2.2) {};
+  \node[vred, label=above:{\scriptsize $v_4$}] at (0.3, 2.2) {};
+  \node[vblue, label=above:{\scriptsize $v_5$}] at (0.9, 2.2) {};
+  \node[vblue, label=above:{\scriptsize $v_6$}] at (1.5, 2.2) {};
+
+  % Arrow f_int
+  \draw[arrowwire] (0, 1.95) -- (0, 1.35);
+
+  % 3. Main Graph G
+  \draw[graphbox] (-2.1, -1.3) rectangle (2.1, 1.3);
+
+  % Top external boundary vertices
+  \node[vblack, label=above:{\scriptsize $v_1$}] (v1_top) at (-0.5, 1.05) {};
+  \node[vblack, label=above:{\scriptsize $v_2$}] (v2_top) at (0.5, 1.05) {};
+  \draw[wire] (v1_top) -- (-0.5, 0.7);
+  \draw[wire] (v2_top) -- (0.5, 0.7);
+
+  % E-box e_1
+  \draw[dashed, thick, fill=white] (-1.7, -0.7) rectangle (1.7, 0.7);
+  \draw[dashed, thick] (0, -0.7) -- (0, 0.7);
+  \node[anchor=north west] at (-1.7, -0.7) {\tiny $e_1$};
+
+  % Left compartment (Choice 1 - red)
+  \node[vred, label=above:{\scriptsize $v_3$}] at (-1.0, 0.0) {};
+  \node[vred, label=above:{\scriptsize $v_4$}] at (-0.4, 0.0) {};
+
+  % Right compartment (Choice 2 - blue)
+  \node[vblue, label=above:{\scriptsize $v_5$}] (v5) at (0.45, 0.45) {};
+  \node[vblue, label=above:{\scriptsize $v_6$}] (v6) at (1.25, 0.45) {};
+  \node[draw, rounded corners=2pt, fill=white, inner sep=2pt] (f) at (0.85, 0.0) {\scriptsize $f$};
+  \node[anchor=east] at (f.west) {\tiny $e_2$};
+  \node[vblue, label=below:{\scriptsize $w_3$}] (w3) at (0.45, -0.45) {};
+  \node[vblue, label=below:{\scriptsize $w_4$}] (w4) at (1.25, -0.45) {};
+  \draw[wire] (v5) to[out=-90, in=120] (f.north west);
+  \draw[wire] (v6) to[out=-90, in=60] (f.north east);
+  \draw[wire] (f.south west) to[out=-120, in=90] (w3);
+  \draw[wire] (f.south east) to[out=-60, in=90] (w4);
+
+  % Bottom external boundary vertices
+  \draw[wire] (-0.5, -0.7) -- (-0.5, -1.05);
+  \draw[wire] (0.5, -0.7) -- (0.5, -1.05);
+  \node[vblack, label=below:{\scriptsize $w_1$}] (w1_bot) at (-0.5, -1.05) {};
+  \node[vblack, label=below:{\scriptsize $w_2$}] (w2_bot) at (0.5, -1.05) {};
+
+  % Arrow g_int
+  \draw[arrowwire] (0, -1.95) -- (0, -1.35);
+
+  % 4. Extended Output Interface m'
+  \draw[intbox] (-1.9, -2.7) rectangle (1.9, -2.0);
+  \node[vblack, label=above:{\scriptsize $w_1$}] at (-1.5, -2.5) {};
+  \node[vblack, label=above:{\scriptsize $w_2$}] at (-0.9, -2.5) {};
+  \node[vred, label=above:{\scriptsize $v_4$}] at (-0.3, -2.5) {};
+  \node[vred, label=above:{\scriptsize $v_3$}] at (0.3, -2.5) {};
+  \node[vblue, label=above:{\scriptsize $w_3$}] at (0.9, -2.5) {};
+  \node[vblue, label=above:{\scriptsize $w_4$}] at (1.5, -2.5) {};
+
+  % Arrow g_ext
+  \draw[arrowwire] (0, -3.35) -- (0, -2.75);
+
+  % 5. External Output Interface m
+  \draw[intbox] (-0.8, -4.1) rectangle (0.8, -3.4);
+  \node[vblack, label=above:{\scriptsize $w_1$}] at (-0.3, -3.9) {};
+  \node[vblack, label=above:{\scriptsize $w_2$}] at (0.3, -3.9) {};
+\end{tikzpicture}
+\par\vspace{0.4em}
+\textbf{(a)} Extended cospan morphism in $\mathbf{EHypI}(\Sigma)$~\cite{tiurin2024equivalence}.
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+\centering
+\begin{tikzpicture}[
+  scale=0.82, transform shape,
+  >={Stealth},
+  vblack/.style={circle, fill=black, inner sep=1.4pt},
+  vred/.style={circle, fill=red!75!black, inner sep=1.4pt},
+  vblue/.style={circle, fill=blue!75!black, inner sep=1.4pt},
+  wire/.style={thick},
+  bridge/.style={draw=blue!80!black, rectangle, rounded corners=2pt, fill=blue!10, font=\tiny, inner sep=2pt},
+  graphbox/.style={draw=gray!70, fill=gray!10, rounded corners=1pt}
+]
+  % Main Graph G
+  \draw[graphbox] (-2.2, -4.1) rectangle (2.2, 4.1);
+
+  % Top external boundary vertices
+  \node[vblack, label=above:{\scriptsize $v_1$}] (v1) at (-0.6, 3.6) {};
+  \node[vblack, label=above:{\scriptsize $v_2$}] (v2) at (0.6, 3.6) {};
+
+  % E-box e_1
+  \draw[dashed, thick, fill=white] (-2.0, -2.9) rectangle (2.0, 2.9);
+  \draw[dashed, thick] (0, -2.9) -- (0, 2.9);
+  \node[anchor=north west] at (-2.0, -2.9) {\tiny $e_1$};
+
+  % --- Choice 1 (left) ---
+  \node[bridge] (bin1) at (-1.0, 2.2) {$\mathrm{bIn}(e_1, c_1)$};
+  \node[vred, label=left:{\scriptsize $v_3$}] (v3) at (-1.3, 0.8) {};
+  \node[vred, label=right:{\scriptsize $v_4$}] (v4) at (-0.7, 0.8) {};
+
+  \node[vred, label=left:{\scriptsize $v_4$}] (v4_out) at (-1.3, -0.8) {};
+  \node[vred, label=right:{\scriptsize $v_3$}] (v3_out) at (-0.7, -0.8) {};
+  \node[bridge] (bout1) at (-1.0, -2.2) {$\mathrm{bOut}(e_1, c_1)$};
+
+  % Routing into bin1
+  \draw[wire] (v1) to[out=-90, in=120] (bin1.north west);
+  \draw[wire] (v2) to[out=-90, in=60] (bin1.north east);
+
+  % From bin1 to v3, v4
+  \draw[wire] (bin1.south west) to[out=-90, in=90] (v3);
+  \draw[wire] (bin1.south east) to[out=-90, in=90] (v4);
+
+  % Permutation / swap in choice 1
+  \draw[wire] (v3) to[out=-90, in=90] (v3_out);
+  \draw[wire] (v4) to[out=-90, in=90] (v4_out);
+
+  % To bout1
+  \draw[wire] (v4_out) to[out=-90, in=90] (bout1.north west);
+  \draw[wire] (v3_out) to[out=-90, in=90] (bout1.north east);
+
+  % --- Choice 2 (right) ---
+  \node[bridge] (bin2) at (1.0, 2.2) {$\mathrm{bIn}(e_1, c_2)$};
+  \node[vblue, label=left:{\scriptsize $v_5$}] (v5) at (0.7, 1.1) {};
+  \node[vblue, label=right:{\scriptsize $v_6$}] (v6) at (1.3, 1.1) {};
+
+  \node[draw, rounded corners=2pt, fill=white, inner sep=2pt] (f) at (1.0, 0.0) {\scriptsize $f$};
+  \node[anchor=east] at (f.west) {\tiny $e_2$};
+
+  \node[vblue, label=left:{\scriptsize $w_3$}] (w3) at (0.7, -1.1) {};
+  \node[vblue, label=right:{\scriptsize $w_4$}] (w4) at (1.3, -1.1) {};
+  \node[bridge] (bout2) at (1.0, -2.2) {$\mathrm{bOut}(e_1, c_2)$};
+
+  % Routing into bin2
+  \draw[wire] (v1) to[out=-90, in=120] (bin2.north west);
+  \draw[wire] (v2) to[out=-90, in=60] (bin2.north east);
+
+  % From bin2 to v5, v6
+  \draw[wire] (bin2.south west) to[out=-90, in=90] (v5);
+  \draw[wire] (bin2.south east) to[out=-90, in=90] (v6);
+
+  % Choice 2 operation f
+  \draw[wire] (v5) to[out=-90, in=120] (f.north west);
+  \draw[wire] (v6) to[out=-90, in=60] (f.north east);
+  \draw[wire] (f.south west) to[out=-120, in=90] (w3);
+  \draw[wire] (f.south east) to[out=-60, in=90] (w4);
+
+  % From w3, w4 to bout2
+  \draw[wire] (w3) to[out=-90, in=90] (bout2.north west);
+  \draw[wire] (w4) to[out=-90, in=90] (bout2.north east);
+
+  % Bottom external boundary vertices
+  \node[vblack, label=below:{\scriptsize $w_1$}] (w1) at (-0.6, -3.6) {};
+  \node[vblack, label=below:{\scriptsize $w_2$}] (w2) at (0.6, -3.6) {};
+
+  % Routing from bout1 and bout2 to w1, w2
+  \draw[wire] (bout1.south west) to[out=-90, in=90] (w1);
+  \draw[wire] (bout1.south east) to[out=-90, in=90] (w2);
+  \draw[wire] (bout2.south west) to[out=-90, in=90] (w1);
+  \draw[wire] (bout2.south east) to[out=-90, in=90] (w2);
+\end{tikzpicture}
+\par\vspace{0.4em}
+\textbf{(b)} Equivalent self-contained Bridge E-Hypergraph.
+\end{minipage}
+\caption{Visual comparison between the categorical extended interface representation of Tiurin et al.~\cite{tiurin2024equivalence} (left) and the internalized Bridge E-Hypergraph representation (right).}
+\label{fig:comparison-example}
+\end{figure}
+
+In this example, an e-box $e_1$ of arity $2 \to 2$ has external input vertices $(v_1, v_2)$ and external output vertices $(w_1, w_2)$, encapsulating two equivalent implementations:
+\begin{itemize}
+    \item \textbf{Alternative 1 (red):} A wire permutation swapping the two ports, mapping inputs $(v_3, v_4)$ to outputs $(v_4, v_3)$.
+    \item \textbf{Alternative 2 (blue):} A generator edge $e_2$ labeled $f$, consuming inputs $(v_5, v_6)$ and producing outputs $(w_3, w_4)$.
+\end{itemize}
+
+\paragraph{Structural Analysis of the Extended Interface Model (\Cref{fig:comparison-example}a).}
+In the original model of Tiurin et al., the graph $G$ contains \emph{no edges} connecting the external ports $(v_1, v_2, w_1, w_2)$ to the internal alternatives. Inside $G$, both alternatives are isolated islands. 
+
+To specify how signals flow across the hierarchy boundary, the model requires an external cospan of four discrete interface hypergraphs:
+\[
+\mathbf{Disc}(2) \xrightarrow{f_{\text{ext}}} \mathbf{Disc}(6) \xrightarrow{f_{\text{int}}} G \xleftarrow{g_{\text{int}}} \mathbf{Disc}(6) \xleftarrow{g_{\text{ext}}} \mathbf{Disc}(2).
+\]
+The connection between external and internal ports is recorded strictly via index positions in the extended discrete interface $\mathbf{Disc}(6)$:
+\begin{itemize}
+    \item $f_{\text{ext}}$ embeds external inputs $v_1, v_2$ at positions 1 and 2.
+    \item The internal inputs for Alternative~1 ($v_3, v_4$) occupy positions 3 and 4.
+    \item The internal inputs for Alternative~2 ($v_5, v_6$) occupy positions 5 and 6.
+\end{itemize}
+Because this information resides in external index tables rather than in graph adjacency lists, an algorithm traversing $G$ cannot follow pointers across the boundary without querying the inverse mappings $f_{\text{int}}^{-1}$ and $g_{\text{int}}^{-1}$.
+
+\paragraph{Structural Analysis of the Bridge E-Hypergraph Model (\Cref{fig:comparison-example}b).}
+In the Bridge E-Hypergraph, the four external interface graphs and their cospan mappings are completely eliminated. Instead, the interface routing is internalized as concrete, traversable hyperedges:
+\begin{itemize}
+    \item Alternative~1 is equipped with an input bridge $\mathrm{bridgeIn}(e_1, c_1)$ with $s = (v_1, v_2)$ and $t = (v_3, v_4)$, and an output bridge $\mathrm{bridgeOut}(e_1, c_1)$ with $s = (v_4, v_3)$ and $t = (w_1, w_2)$.
+    \item Alternative~2 is equipped with an input bridge $\mathrm{bridgeIn}(e_1, c_2)$ with $s = (v_1, v_2)$ and $t = (v_5, v_6)$, and an output bridge $\mathrm{bridgeOut}(e_1, c_2)$ with $s = (w_3, w_4)$ and $t = (w_1, w_2)$.
+\end{itemize}
+The graph is now 100\% self-contained: graph matching, reachability, and extraction algorithms can traverse directly from $(v_1, v_2)$ into either alternative and exit to $(w_1, w_2)$ purely by following the standard source and target functions $s$ and $t$.
+
+\section{The Category of Bridge Graphs}
+
+\begin{definition}[Choice Context and Bridge Reachability]
+Let $G = (V, E, s, t, \mathrm{kind}, \mathrm{anchor})$ be a Bridge Graph over choice set $\mathcal{C}$. 
+A \emph{choice context} $C \subseteq E \times \mathcal{C}$ is a set of active choices such that for every e-box $b \in E$, there is at most one choice $(b, c) \in C$.
+
+Given a choice context $C$, the \emph{bridge reachability relation} $\rightsquigarrow_C$ on $V$ is the reflexive-transitive closure of the following relations:
+\begin{enumerate}
+    \item \textbf{Bridge-In traversal:} If $\mathrm{kind}(b) = \mathrm{bridgeIn}(box, c)$ with $(box, c) \in C$, then for each port index $i \in \{1, \dots, |s(b)|\}$:
+    \[
+    s(b)[i] \rightsquigarrow_C t(b)[i].
+    \]
+    \item \textbf{Bridge-Out traversal:} If $\mathrm{kind}(b) = \mathrm{bridgeOut}(box, c)$ with $(box, c) \in C$, then for each port index $j \in \{1, \dots, |s(b)|\}$:
+    \[
+    s(b)[j] \rightsquigarrow_C t(b)[j].
+    \]
+\end{enumerate}
+\end{definition}
+
+\begin{definition}[Bridge Morphism]
+Let $G_1$ and $G_2$ be Bridge Graphs. A \emph{bridge morphism} from $G_1$ to $G_2$ is a triple $h = (h_E \colon E_1 \to E_2, \; h_V \colon V_1 \to V_2, \; C)$, where $C$ is a consistent choice context on $G_2$, such that:
+\begin{enumerate}[label=(\alph*)]
+    \item \textbf{Kind Preservation:} For all $e \in E_1$, $\mathrm{kind}_1(e) = \mathrm{kind}_2(h_E(e))$.
+    \item \textbf{Source Reachability:} For all $e \in E_1$ and each input port $i \in \{1, \dots, |s_1(e)|\}$:
+    \[
+    h_V(s_1(e)[i]) \rightsquigarrow_C s_2(h_E(e))[i].
+    \]
+    \item \textbf{Target Reachability:} For all $e \in E_1$ and each output port $j \in \{1, \dots, |t_1(e)|\}$:
+    \[
+    t_2(h_E(e))[j] \rightsquigarrow_C h_V(t_1(e)[j]).
+    \]
+\end{enumerate}
+\end{definition}
+
+\begin{definition}[Bridge Matching]
+A \emph{matching} of a flat pattern hypergraph $P$ in a host Bridge Graph $G$ is a bridge morphism $h = (h_E, h_V, C) \colon P \to G$ such that $h_E$ is injective.
+\end{definition}
+
+\begin{proposition}
+Bridge Graphs together with Bridge Morphisms form a category $\mathbf{BridgeHyp}$.
+\end{proposition}
+
+
 \begin{thebibliography}{9}
 \bibitem{tiurin2024equivalence}
 Aleksei Tiurin, Chris Barrett, Dan~R. Ghica, and Nick Hu.

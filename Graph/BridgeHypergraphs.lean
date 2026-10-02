@@ -21,6 +21,10 @@ structure BridgeGraph (E V ChoiceID Sign : Type _) where
   kind : E → EdgeKind E ChoiceID Sign
   /-- Acts as the canonical "Union-Find" root to identify a specific Choice. -/
   choice_anchor : E → ChoiceID → (V ⊕ E)
+  /-- Direct mapping from an E-box and choice to its input bridge edge -/
+  bridge_in  : (box : E) → kind box = .ebox → ChoiceID → E
+  /-- Direct mapping from an E-box and choice to its output bridge edge -/
+  bridge_out : (box : E) → kind box = .ebox → ChoiceID → E
 
 /-- The mathematical laws that guarantee a BridgeGraph represents a valid E-Hypergraph.
     Algorithms don't need to compute these, but theorems will assume them via `[BridgeGraphLaws G]`. -/
@@ -165,13 +169,22 @@ class BridgeGraphLaws {E V ChoiceID Sign : Type _} (G : BridgeGraph E V ChoiceID
     G.kind b_out = .bridgeOut box c →
     ∃ b_in : E, G.kind b_in = .bridgeIn box c
 
+  -- ============================================================
+  -- 9) Direct Bridge Function Invariants
+  -- ============================================================
+  bridge_in_correct : ∀ (box : E) (h : G.kind box = .ebox) (c : ChoiceID),
+    G.kind (G.bridge_in box h c) = .bridgeIn box c
+
+  bridge_out_correct : ∀ (box : E) (h : G.kind box = .ebox) (c : ChoiceID),
+    G.kind (G.bridge_out box h c) = .bridgeOut box c
+
 
 def FlattenBridgeGraphEdges  (bg : BridgeGraph E V ChoiceID Sign) : Type _ :=
   { e : E // bg.kind e = EdgeKind.ebox ∨ ∃ s : Sign , bg.kind e = EdgeKind.base s}
 
-def RemoveBridgeEdgeSource [DecidableEq V] (bg : BridgeGraph E V ChoiceID Sign) (choice : ChoiceID) (box e_in e_out : E)
-  (h_box : bg.kind box = EdgeKind.ebox) (h_in : bg.kind e_in = EdgeKind.bridgeIn box choice) (h_out : bg.kind e_out = EdgeKind.bridgeOut box choice) :
+def RemoveBridgeEdgeSource [DecidableEq V] (bg : BridgeGraph E V ChoiceID Sign) (box : E) (h_box : bg.kind box = EdgeKind.ebox) (choice : ChoiceID) :
   E → List V :=
+    let e_out := bg.bridge_out box h_box choice
     fun e =>
       if bg.hg.s e = bg.hg.t box then
         bg.hg.s e_out
@@ -180,9 +193,9 @@ def RemoveBridgeEdgeSource [DecidableEq V] (bg : BridgeGraph E V ChoiceID Sign) 
       else
         bg.hg.s e
 
-def RemoveBridgeEdgeTarget [DecidableEq V] (bg : BridgeGraph E V ChoiceID Sign) (choice : ChoiceID) (box e_in e_out : E)
-  (h_box : bg.kind box = EdgeKind.ebox) (h_in : bg.kind e_in = EdgeKind.bridgeIn box choice) (h_out : bg.kind e_out = EdgeKind.bridgeOut box choice) :
+def RemoveBridgeEdgeTarget [DecidableEq V] (bg : BridgeGraph E V ChoiceID Sign) (box : E) (h_box : bg.kind box = EdgeKind.ebox) (choice : ChoiceID) :
   E → List V :=
+    let e_in := bg.bridge_in box h_box choice
     fun e =>
       if bg.hg.t e = bg.hg.s box then
         bg.hg.t e_in
@@ -192,11 +205,65 @@ def RemoveBridgeEdgeTarget [DecidableEq V] (bg : BridgeGraph E V ChoiceID Sign) 
         bg.hg.t e
 
 
-def RemoveBridgeEdge [DecidableEq V] (bg : BridgeGraph E V ChoiceID Sign) (choice : ChoiceID) (box e_in e_out : E)
-  (h_box : bg.kind box = EdgeKind.ebox) (h_in : bg.kind e_in = EdgeKind.bridgeIn box choice) (h_out : bg.kind e_out = EdgeKind.bridgeOut box choice) :
+def RemoveBridgeEdgeHG [DecidableEq V] (bg : BridgeGraph E V ChoiceID Sign) (box : E) (h_box : bg.kind box = EdgeKind.ebox) (choice : ChoiceID) :
   Hypergraph E V :=
-    { s := RemoveBridgeEdgeSource bg choice box e_in e_out h_box h_in h_out
-      t := RemoveBridgeEdgeTarget bg choice box e_in e_out h_box h_in h_out }
+    { s := RemoveBridgeEdgeSource bg box h_box choice
+      t := RemoveBridgeEdgeTarget bg box h_box choice }
+
+def RemoveBridgeEdge [DecidableEq V] (bg : BridgeGraph E V ChoiceID Sign) (box : E) (h_box : bg.kind box = EdgeKind.ebox) (choice : ChoiceID) :
+  BridgeGraph E V ChoiceID Sign :=
+  { hg := RemoveBridgeEdgeHG bg box h_box choice
+    kind := bg.kind
+    choice_anchor := bg.choice_anchor
+    bridge_in := bg.bridge_in
+    bridge_out := bg.bridge_out }
 
 
--- structure E_Hypergraph_Matching (bg : BridgeGraph E V ChoiceID Sign) (Hypergraph E V)
+/-- A choice context records which choice branch is activated for an E-box. -/
+abbrev ChoiceContext (E ChoiceID : Type _) := List (E × ChoiceID)
+
+/-- Bridge reachability relation (⤳_C) through active bridges. -/
+inductive BridgeReachability {E V ChoiceID Sign : Type _}
+    (bg : BridgeGraph E V ChoiceID Sign) (C : ChoiceContext E ChoiceID) : V → V → Prop where
+  | refl (v : V) : BridgeReachability bg C v v
+  | bridgeIn (b box : E) (c : ChoiceID) (u v : V)
+      (hk : bg.kind b = .bridgeIn box c)
+      (hc : (box, c) ∈ C)
+      (hp : (u, v) ∈ (bg.hg.s b).zip (bg.hg.t b)) :
+      BridgeReachability bg C u v
+  | bridgeOut (b box : E) (c : ChoiceID) (u v : V)
+      (hk : bg.kind b = .bridgeOut box c)
+      (hc : (box, c) ∈ C)
+      (hp : (u, v) ∈ (bg.hg.s b).zip (bg.hg.t b)) :
+      BridgeReachability bg C u v
+  | trans {u v w : V} :
+      BridgeReachability bg C u v → BridgeReachability bg C v w → BridgeReachability bg C u w
+
+/-- Pointwise reachability between port sequences. -/
+inductive PortsReach {V : Type _} (R : V → V → Prop) : List V → List V → Prop where
+  | nil : PortsReach R [] []
+  | cons {u v : V} {us vs : List V} (h : R u v) (hs : PortsReach R us vs) :
+      PortsReach R (u :: us) (v :: vs)
+
+/-- Map edge kinds across different edge types. -/
+def EdgeKind.map {E₁ E₂ ChoiceID Sign : Type _} (f : E₁ → E₂) (k : EdgeKind E₁ ChoiceID Sign) :
+    EdgeKind E₂ ChoiceID Sign :=
+  match k with
+  | .base s => .base s
+  | .ebox => .ebox
+  | .bridgeIn b c => .bridgeIn (f b) c
+  | .bridgeOut b c => .bridgeOut (f b) c
+
+/-- A Bridge Morphism between bridge graphs modulo reachability in the host graph. -/
+structure BridgeMorphism {E₁ V₁ E₂ V₂ ChoiceID Sign : Type _}
+    (bg₁ : BridgeGraph E₁ V₁ ChoiceID Sign) (bg₂ : BridgeGraph E₂ V₂ ChoiceID Sign) where
+  mapE : E₁ → E₂
+  mapV : V₁ → V₂
+  choice_context : ChoiceContext E₂ ChoiceID
+  consistent : ∀ {b : E₂} {c1 c2 : ChoiceID},
+    (b, c1) ∈ choice_context → (b, c2) ∈ choice_context → c1 = c2
+  kind_preserving (e : E₁) : bg₂.kind (mapE e) = EdgeKind.map mapE (bg₁.kind e)
+  source_reach (e : E₁) : PortsReach (BridgeReachability bg₂ choice_context)
+    ((bg₁.hg.s e).map mapV) (bg₂.hg.s (mapE e))
+  target_reach (e : E₁) : PortsReach (BridgeReachability bg₂ choice_context)
+    (bg₂.hg.t (mapE e)) ((bg₁.hg.t e).map mapV)
